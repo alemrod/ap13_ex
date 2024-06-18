@@ -174,43 +174,43 @@
 -- 	END IF;
 -- END $$;
 
-CALL sp_nota(1, Fail, DD, DC, CC, CB, BB, BA, AA);
-	IF genero = 1 THEN
-    	RAISE NOTICE 'Percentual de notas para alunos do sexo masculino:';
-    	RAISE NOTICE 'Fail: %', Fail;
-    	RAISE NOTICE 'DD: %', DD;
-    	RAISE NOTICE 'DC: %', DC;
-    	RAISE NOTICE 'CC: %', CC;
-    	RAISE NOTICE 'CB: %', CB;
-    	RAISE NOTICE 'BB: %', BB;
-    	RAISE NOTICE 'BA: %', BA;
-    	RAISE NOTICE 'AA: %', AA;
+-- CALL sp_nota(1, Fail, DD, DC, CC, CB, BB, BA, AA);
+-- 	IF genero = 1 THEN
+--     	RAISE NOTICE 'Percentual de notas para alunos do sexo masculino:';
+--     	RAISE NOTICE 'Fail: %', Fail;
+--     	RAISE NOTICE 'DD: %', DD;
+--     	RAISE NOTICE 'DC: %', DC;
+--     	RAISE NOTICE 'CC: %', CC;
+--     	RAISE NOTICE 'CB: %', CB;
+--     	RAISE NOTICE 'BB: %', BB;
+--     	RAISE NOTICE 'BA: %', BA;
+--     	RAISE NOTICE 'AA: %', AA;
 
-	ELSE
-		RAISE NOTICE 'Percentual de notas para alunos do sexo feminino:';
-    	RAISE NOTICE 'Fail: %', Fail;
-    	RAISE NOTICE 'DD: %', DD;
-    	RAISE NOTICE 'DC: %', DC;
-    	RAISE NOTICE 'CC: %', CC;
-    	RAISE NOTICE 'CB: %', CB;
-    	RAISE NOTICE 'BB: %', BB;
-    	RAISE NOTICE 'BA: %', BA;
-    	RAISE NOTICE 'AA: %', AA;
-	END IF;
+-- 	ELSE
+-- 		RAISE NOTICE 'Percentual de notas para alunos do sexo feminino:';
+--     	RAISE NOTICE 'Fail: %', Fail;
+--     	RAISE NOTICE 'DD: %', DD;
+--     	RAISE NOTICE 'DC: %', DC;
+--     	RAISE NOTICE 'CC: %', CC;
+--     	RAISE NOTICE 'CB: %', CB;
+--     	RAISE NOTICE 'BB: %', BB;
+--     	RAISE NOTICE 'BA: %', BA;
+--     	RAISE NOTICE 'AA: %', AA;
+-- 	END IF;
 
-	RAISE NOTICE 'Fail: %', Fail;
-    RAISE NOTICE 'DD: %', DD;
-    RAISE NOTICE 'DC: %', DC;
-    RAISE NOTICE 'CC: %', CC;
-    RAISE NOTICE 'CB: %', CB;
-    RAISE NOTICE 'BB: %', BB;
-    RAISE NOTICE 'BA: %', BA;
-    RAISE NOTICE 'AA: %', AA;
-END $$;
+-- 	RAISE NOTICE 'Fail: %', Fail;
+--     RAISE NOTICE 'DD: %', DD;
+--     RAISE NOTICE 'DC: %', DC;
+--     RAISE NOTICE 'CC: %', CC;
+--     RAISE NOTICE 'CB: %', CB;
+--     RAISE NOTICE 'BB: %', BB;
+--     RAISE NOTICE 'BA: %', BA;
+--     RAISE NOTICE 'AA: %', AA;
+-- END $$;
 
 
 -- 1.5 Escreva as seguintes functions (incluindo um bloco anônimo de teste para cada uma):
--- 1.5.1 Responde (devolve boolean) se é verdade que todos os estudantes de renda acima de
+-- 1.5 Responde (devolve boolean) se é verdade que todos os estudantes de renda acima de
 -- 410 são aprovados (grade > 0).
 CREATE OR REPLACE FUNCTION sp_renda() RETURNS BOOLEAN 
 AS $$
@@ -239,3 +239,80 @@ BEGIN
     END IF;
 END $$;
 END;
+
+-- 1.5 Responde (devolve boolean) se é verdade que, entre os estudantes que fazem
+-- anotações pelo menos algumas vezes durante as aulas, pelo menos 70% são aprovados
+-- (grade > 0).
+CREATE OR REPLACE FUNCTION sp_anotacao() RETURNS BOOLEAN 
+AS $$
+DECLARE
+	total_anotadores NUMERIC(10,2);
+	anotadores_aprovados NUMERIC(10,2);
+	porcentagem_aprovados NUMERIC(10,2);
+BEGIN
+	SELECT COUNT(*) INTO total_anotadores
+	FROM tb_aluno
+	WHERE notes >= 2;
+
+	SELECT COUNT(*) INTO anotadores_aprovados
+	FROM tb_aluno
+	WHERE notes >= 2 and grade > 0;
+
+	IF anotadores_aprovados = 0 THEN
+		porcentagem_aprovados := 0;
+	ELSE 
+		porcentagem_aprovados := (anotadores_aprovados / total_anotadores);
+	END IF;
+
+	RETURN porcentagem_aprovados > 0.7;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+DECLARE
+    result BOOLEAN;
+BEGIN
+    result := sp_anotacao();
+    IF result THEN
+        RAISE NOTICE 'Pelo menos 70%% dos estudantes que fazem anotações são aprovados.';
+    ELSE
+        RAISE NOTICE 'Menos de 70%% dos estudantes que fazem anotações são aprovados.';
+    END IF;
+END;
+$$
+
+-- Devolve o percentual de alunos que se preparam pelo menos um pouco para os
+-- “midterm exams” e que são aprovados (grade > 0).
+CREATE OR REPLACE FUNCTION sp_preparados() RETURNS NUMERIC(10,2)
+AS $$
+DECLARE
+	total_preparados NUMERIC(10,2);
+	preparados_aprovados NUMERIC(10,2);
+	porcentagem_aprovados NUMERIC(10,2);
+BEGIN
+	SELECT COUNT(*) INTO total_preparados
+	FROM tb_aluno
+	WHERE Prep_exam = 1;
+
+	SELECT COUNT(*) INTO preparados_aprovados
+	FROM tb_aluno
+	WHERE Prep_exam = 1 and grade > 0;
+
+	IF preparados_aprovados = 0 THEN
+		porcentagem_aprovados := 0;
+	ELSE 
+		porcentagem_aprovados := (preparados_aprovados / total_preparados);
+	END IF;
+
+	RETURN porcentagem_aprovados;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+DECLARE
+    percentual NUMERIC(10,2);
+BEGIN
+    percentual := sp_preparados();
+    RAISE NOTICE 'o percentual de alunos que se preparam ao menos um pouco para os midterms exams é de: %', percentual;
+END;
+$$
